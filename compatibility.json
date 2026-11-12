@@ -1,5 +1,5 @@
 {
-  "horizon_revision": "c9d474dd9116e84c243f8992d75c11314df56f06",
+  "horizon_revision": "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca",
   "source_sha256": {
     "crates/horizon-client/src/game.rs": "4ab99203479d467d4c8e728b752ad82010f405ca1543f769dbcec646e1be0d3e",
     "crates/horizon-client/src/game/dragon.rs": "691332db62124a61f60979d9d95460ee6ee97264a72885ba627d6d22a4ac7ea3",

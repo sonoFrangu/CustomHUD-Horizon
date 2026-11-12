@@ -1,10 +1,10 @@
 [mod]
 id = "customhud"
-version = "1.7.0"
+version = "1.7.1"
 priority = 100
 
 [compatibility]
-horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+horizon_revision = "fdc87aecdbd116bf1e08adcd062fcbaea8c2e2ca"
 
 # La logica (configurazione, testi, HUD, schermata) diventa `crate::game::customhud`.
 [[module]]

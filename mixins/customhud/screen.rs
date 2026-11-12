@@ -64,7 +64,8 @@ pub(super) fn draw_hud(game: &mut Game<'_>, batch: &mut HudBatch) {
     }
     let overworld = player.dimension == "minecraft:overworld";
     let config = hud::with_state(|| load(game), |s| s.config.clone());
-    let frame = frame(game, batch, overworld);
+    let bars = status_bar_height(game);
+    let frame = frame(game, batch, overworld, bars);
     let Some(out) = hud::layout(&config, &frame, &|t: &str| text_width(game, t)) else {
         return;
     };
@@ -75,7 +76,7 @@ pub(super) fn draw_hud(game: &mut Game<'_>, batch: &mut HudBatch) {
     draw_out(game, batch, &out);
 }
 
-fn frame(game: &Game<'_>, batch: &HudBatch, overworld: bool) -> hud::Frame {
+fn frame(game: &Game<'_>, batch: &HudBatch, overworld: bool, status_bar_height: i32) -> hud::Frame {
     hud::Frame {
         day_time: game.world.day_time,
         width: batch.width as i32,
@@ -90,10 +91,36 @@ fn frame(game: &Game<'_>, batch: &HudBatch, overworld: bool) -> hud::Frame {
         },
         hardcore: game.level.hardcore,
         low_air: game.player.as_ref().is_some_and(|p| p.air < 300),
-        status_bar_height: game.health_hud.left_height.max(game.health_hud.right_height),
+        status_bar_height,
         millis: millis(),
         lang: lang(game),
     }
+}
+
+// Quanto salgono dal fondo dello schermo le righe di vita e fame, come le
+// dispone l'HUD della vita del gioco (`Hud.extractPlayerHealth`): più righe di
+// cuori con l'assorbimento, una riga per l'armatura, una per l'aria. Il gioco
+// non tiene più queste altezze, quindi si calcolano qui dagli stessi dati.
+fn status_bar_height(game: &mut Game<'_>) -> i32 {
+    use horizon_client::hud_layout::ceil;
+    if game.creative {
+        return 0;
+    }
+    let Some(p) = game.player.as_mut() else {
+        return 0;
+    };
+    let max_health = p.attribute("minecraft:max_health").unwrap_or(20.0) as f32;
+    let max_health = max_health.max(ceil(p.health.health()) as f32);
+    let armor = p
+        .attribute("minecraft:armor")
+        .or_else(|_| p.attribute("armor"))
+        .unwrap_or(0.0) as i32;
+    let rows = ceil((max_health + ceil(p.health.absorption()) as f32) / 2.0 / 10.0);
+    let row_height = (10 - (rows - 2)).max(3);
+    let left = 39 + (rows - 1) * row_height + 10 + if armor > 0 { 10 } else { 0 };
+    let under_water = p.is_eye_in_fluid(horizon_client::motion::WATER);
+    let right = 39 + 10 + if under_water || p.air < 300 { 10 } else { 0 };
+    left.max(right)
 }
 
 // Disegna nel batch il risultato di `hud::layout`.
@@ -308,6 +335,7 @@ fn simple_box(game: &Game<'_>, config: &hud::Config, w: i32, h: i32) -> hud::Sim
 // Il mondo resta visibile (sfocato) con sopra il contatore vero, un bordo che
 // mostra dove afferrarlo, una riga di aiuto e Fatto.
 fn draw_placing(game: &mut Game<'_>, batch: &mut HudBatch) {
+    let bars = status_bar_height(game);
     let (w, h) = (batch.width as i32, batch.height as i32);
     let cursor = game.cursor;
     let config = hud::with_state(|| None, |s| {
@@ -331,7 +359,7 @@ fn draw_placing(game: &mut Game<'_>, batch: &mut HudBatch) {
     let (dx, dy, dw, dh) = (done.x as f32, done.y as f32, done.w as f32, done.h as f32);
     ui::button(batch, atlas, dx, dy, dw, dh, &label, true, done.contains(cursor));
 
-    let frame = frame(game, batch, true);
+    let frame = frame(game, batch, true, bars);
     let out = hud::layout(&config, &frame, &|t: &str| text_width(game, t));
     if let Some(out) = out {
         draw_out(game, batch, &out);
